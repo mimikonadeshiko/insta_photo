@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Story Image Maker</title>
+</head>
+<body>
+  <h1>ストーリー用縦長画像作成アプリ</h1>
+  <!-- (info) Background color picker // 背景色ピッカー -->
+  <div>
+    <label for="bgcolor">背景色選択:</label>
+    <input type="color" id="bgcolor" name="bgcolor" value="#ffffff">
+  </div>
+  <!-- (info) Image file inputs // 画像ファイル入力 -->
+  <div>
+    <label for="img1">画像1:</label>
+    <input type="file" id="img1" accept="image/*">
+  </div>
+  <div>
+    <label for="img2">画像2:</label>
+    <input type="file" id="img2" accept="image/*">
+  </div>
+  <div>
+    <label for="img3">画像3:</label>
+    <input type="file" id="img3" accept="image/*">
+  </div>
+  <button id="generateBtn">生成</button>
+  <br>
+  <!-- (info) Canvas to display the result // 結果表示用キャンバス -->
+  <canvas id="resultCanvas"></canvas>
+  <br>
+  <a id="downloadLink" download="story_image.png">画像をダウンロード</a>
+
+  <script>
+    // (info) Initialize variables // 初期化
+    const generateBtn = document.getElementById('generateBtn');
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // (info) Helper function to load image from file input // ファイル入力から画像を読み込むヘルパー関数
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            resolve(img);
+          };
+          img.onerror = function(err) {
+            reject(err);
+          };
+          img.src = event.target.result;
+        };
+        reader.onerror = function(err) {
+          reject(err);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      try {
+        // (info) Retrieve background color and file inputs // 背景色とファイル入力を取得
+        const bgcolor = document.getElementById('bgcolor').value;
+        const fileInputs = [
+          document.getElementById('img1'),
+          document.getElementById('img2'),
+          document.getElementById('img3')
+        ];
+
+        // (info) Load images concurrently // 画像を同時に読み込む
+        const images = [];
+        for (let input of fileInputs) {
+          if (input.files && input.files[0]) {
+            const img = await loadImage(input.files[0]);
+            images.push(img);
+          } else {
+            // (Warning) Alert if any file is not selected // ファイル未選択の場合の警告
+            alert('全ての画像ファイルを選択してください。');
+            return;
+          }
+        }
+
+        // (info) Set fixed canvas dimensions // キャンバスのサイズを固定 (1080x1920)
+        const fixedWidth = 1080;
+        const fixedHeight = 1920;
+        canvas.width = fixedWidth;
+        canvas.height = fixedHeight;
+
+        // (info) Fill background with selected color // 選択した背景色でキャンバスを塗りつぶす
+        ctx.fillStyle = bgcolor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // (info) Determine target dimensions for each image // 各画像の描画サイズを設定 (引き伸ばし)
+        const targetWidth = fixedWidth;       // 横幅1080
+        const targetHeight = fixedHeight / 3;   // 縦幅640 (1920/3)
+
+        // (info) Draw each image vertically with fixed dimensions // 画像を引き伸ばして縦に描画
+        let currentY = 0;
+        for (let img of images) {
+          // Draw image stretched to targetWidth x targetHeight
+          ctx.drawImage(img, 0, currentY, targetWidth, targetHeight);
+          currentY += targetHeight;
+        }
+
+        // (info) Prepare download link // 生成画像のダウンロードリンクを更新
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = canvas.toDataURL('image/png');
+      } catch (error) {
+        console.error('Error:', error); // (Error) Log error // エラーをログに記録
+        alert('画像の生成中にエラーが発生しました。');
+      }
+    });
+  </script>
+</body>
+</html>
