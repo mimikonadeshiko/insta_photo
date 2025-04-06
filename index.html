@@ -3,6 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <title>Story Image Maker</title>
+  <style>
+    /* (info) Simple rounded button style // シンプルな角丸ボタンのスタイル */
+    button {
+      background-color: #007BFF; /* Blue background // 青色の背景 */
+      color: #ffffff;            /* White text // 白色の文字 */
+      border: none;
+      border-radius: 8px;        /* Rounded corners // 角丸 */
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3; /* Darker blue on hover // ホバー時は濃い青 */
+    }
+  </style>
 </head>
 <body>
   <h1>ストーリー用縦長画像作成アプリ</h1>
@@ -36,6 +51,8 @@
     const generateBtn = document.getElementById('generateBtn');
     const canvas = document.getElementById('resultCanvas');
     const ctx = canvas.getContext('2d');
+    // (info) Gap between images when using 2 images // 2枚の場合の画像間の隙間（px単位）
+    const gap = 20;
 
     // (info) Helper function to load image from file input // ファイル入力から画像を読み込むヘルパー関数
     function loadImage(file) {
@@ -82,26 +99,50 @@
         }
 
         // (info) Set fixed canvas dimensions // キャンバスのサイズを固定 (1080x1920)
-        const fixedWidth = 1080;
-        const fixedHeight = 1920;
-        canvas.width = fixedWidth;
-        canvas.height = fixedHeight;
+        const canvasWidth = 1080;
+        const canvasHeight = 1920;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
 
         // (info) Fill background with selected color // 選択した背景色でキャンバスを塗りつぶす
         ctx.fillStyle = bgcolor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // (info) Determine target dimensions for each image // 各画像の描画サイズを設定 (引き伸ばし)
-        const targetWidth = fixedWidth;       // 横幅1080
-        const targetHeight = fixedHeight / 3;   // 縦幅640 (1920/3)
+        // (info) Determine target width for images // 各画像の横幅は1080に固定
+        const targetWidth = canvasWidth;
 
-        // (info) Draw each image vertically with fixed dimensions // 画像を引き伸ばして縦に描画
-        let currentY = 0;
-        for (let img of images) {
-          // Draw image stretched to targetWidth x targetHeight
-          ctx.drawImage(img, 0, currentY, targetWidth, targetHeight);
-          currentY += targetHeight;
+        // (info) Calculate scaled heights preserving aspect ratio // 各画像のアスペクト比維持の高さを計算
+        const calculateHeights = (imgs) => imgs.map(img => img.height * (targetWidth / img.width));
+        
+        // 初期は3枚の画像で計算
+        let selectedImages = images;
+        let scaledHeights = calculateHeights(selectedImages);
+        let compositeHeight = scaledHeights.reduce((sum, h) => sum + h, 0);
+
+        // (info) If composite height overflows canvas with 3 images, use only 1st and 2nd images // 3枚でオーバーフローする場合は1枚目と2枚目を採用
+        if (compositeHeight > canvasHeight && selectedImages.length === 3) {
+          selectedImages = images.slice(0, 2);
+          scaledHeights = calculateHeights(selectedImages);
+          // (info) For 2 images, add gap between them // 2枚の場合は隙間を追加
+          compositeHeight = scaledHeights.reduce((sum, h) => sum + h, 0) + gap;
         }
+
+        // (info) Calculate vertical offset to center the composite // 合計高さがキャンバス未満なら縦方向中央に配置
+        let offsetY = 0;
+        if (compositeHeight < canvasHeight) {
+          offsetY = (canvasHeight - compositeHeight) / 2;
+        }
+
+        // (info) Draw each image preserving aspect ratio // 各画像を描画（横幅は1080固定、縦は比率維持）
+        let currentY = offsetY;
+        selectedImages.forEach((img, i) => {
+          ctx.drawImage(img, 0, currentY, targetWidth, scaledHeights[i]);
+          currentY += scaledHeights[i];
+          // (info) If 2 images, add gap between the first and second image // 2枚の場合、1枚目と2枚目の間に隙間を追加
+          if (selectedImages.length === 2 && i === 0) {
+            currentY += gap;
+          }
+        });
 
         // (info) Prepare download link // 生成画像のダウンロードリンクを更新
         const downloadLink = document.getElementById('downloadLink');
