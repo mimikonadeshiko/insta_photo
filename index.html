@@ -13,6 +13,7 @@
       padding: 10px 20px;
       cursor: pointer;
       font-size: 16px;
+      margin: 5px;
     }
     button:hover {
       background-color: #0056b3; /* Darker blue on hover // ホバー時は濃い青 */
@@ -20,7 +21,7 @@
   </style>
 </head>
 <body>
-  <h1>ストーリー用縦長画像作成アプリ v3</h1>
+  <h1>ストーリー用縦長画像作成アプリ v4</h1>
   <!-- (info) Background color picker // 背景色ピッカー -->
   <div>
     <label for="bgcolor">背景色選択:</label>
@@ -40,6 +41,7 @@
     <input type="file" id="img3" accept="image/*">
   </div>
   <button id="generateBtn">生成</button>
+  <button id="saveBtn">画像ライブラリに保存</button>
   <br>
   <!-- (info) Canvas to display the result // 結果表示用キャンバス -->
   <canvas id="resultCanvas"></canvas>
@@ -49,6 +51,7 @@
   <script>
     // (info) Initialize variables // 初期化
     const generateBtn = document.getElementById('generateBtn');
+    const saveBtn = document.getElementById('saveBtn');
     const canvas = document.getElementById('resultCanvas');
     const ctx = canvas.getContext('2d');
     // (info) Gap between images when using 2 images // 2枚の場合の画像間の隙間（px単位）
@@ -75,6 +78,7 @@
       });
     }
 
+    // (info) Generate composite image // 画像合成ボタンのクリックイベント
     generateBtn.addEventListener('click', async () => {
       try {
         // (info) Retrieve background color and file inputs // 背景色とファイル入力を取得
@@ -154,6 +158,24 @@
         console.error('Error:', error); // (Error) Log error // エラーをログに記録
         alert('画像の生成中にエラーが発生しました。');
       }
+    });
+
+    // (info) Save image to photo library via share API for iPhone // 画像ライブラリに保存ボタンのクリックイベント
+    saveBtn.addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        const file = new File([blob], 'story_image.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: 'ストーリー画像',
+            text: '生成されたストーリー用画像です'
+          })
+          .then(() => console.log('Share successful'))
+          .catch(err => console.error('Share failed:', err));
+        } else {
+          alert('この機能はお使いのブラウザではサポートされていません。');
+        }
+      }, 'image/png');
     });
   </script>
 </body>
